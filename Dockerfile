@@ -349,7 +349,7 @@ RUN R -e 'BiocManager::install()' \
 
 RUN R -e 'devtools::install_github("IRkernel/IRkernel")' \
  && R -e 'IRkernel::installspec(user=FALSE)' \
- && chown -R $USER:users /home/jupyter-user/.local  \
+ && chown -R $USER:users /home/jupyter-user  \
  && R -e 'devtools::install_github("apache/spark@v2.2.3", subdir="R/pkg")' \
  && mkdir -p /home/jupyter-user/.rpackages \
  && echo "R_LIBS=/home/jupyter-user/.rpackages" > /home/jupyter-user/.Renviron \
