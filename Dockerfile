@@ -28,6 +28,7 @@ RUN echo "deb $DEBIAN_REPO/debian stretch main"                   > /etc/apt/sou
     ca-certificates \
     curl \
     build-essential \
+    autoconf \
     lsb-release \
     procps \
     openssl \
@@ -293,7 +294,7 @@ RUN apt-get update \
  && pip3 install jupyter_contrib_nbextensions \
  && pip3 install jupyter_nbextensions_configurator \
  && pip3 install cookiecutter \
- && pip3 install 'scanpy[louvain,leiden,bbknn]==1.4' \
+ && pip3 install 'scanpy[louvain,leiden,bbknn]' \
  && pip3 install fa2 mnnpy MulticoreTSNE plotly \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
@@ -338,11 +339,10 @@ RUN R -e 'install.packages(c( \
     "bigrquery",  \
     "googleCloudStorageR",  \
     "BiocManager", \
+    "Seurat", \
     "tidyverse"), \
     repos="http://cran.mtu.edu")' \
  && R -e 'devtools::install_github("DataBiosphere/Ronaldo")'
-
-RUN R_REMOTES_NO_ERRORS_FROM_WARNINGS=true R -e 'devtools::install_github(repo = "satijalab/seurat", ref = "release/3.0")'
 
 RUN R -e 'BiocManager::install()' \
  && R -e 'BiocManager::install(c("GenomicFeatures", "AnnotationDbi", "scran", "scater"))' \
