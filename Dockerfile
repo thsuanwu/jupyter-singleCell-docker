@@ -315,6 +315,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends apt-utils \
     r-base-dev \
     r-recommended \
     r-cran-mgcv \
+    r-cran-curl \
     r-cran-codetools \
  && apt-get install -y --no-install-recommends \
     fonts-dejavu \
