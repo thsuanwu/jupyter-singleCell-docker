@@ -316,7 +316,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends apt-utils \
     r-recommended \
     r-cran-mgcv \
     r-cran-codetools \
- && apt-get install -t stretch-backports -y --no-install-recommends \
+ && apt-get install -y --no-install-recommends \
     fonts-dejavu \
     tzdata \
     gfortran \
