@@ -77,9 +77,9 @@ ENV LC_ALL en_US.UTF-8
 # Java
 #######################
 
-ENV JAVA_VER jdk1.8.0_201
-ENV JAVA_TGZ jdk-8u201-linux-x64.tar.gz
-ENV JAVA_URL https://download.oracle.com/otn-pub/java/jdk/8u201-b09/42970487e3af4f5aa5bca3f542482c60/$JAVA_TGZ
+ENV JAVA_VER jdk1.8.0_131
+ENV JAVA_TGZ jdk-8u131-linux-x64.tar.gz
+ENV JAVA_URL http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/$JAVA_TGZ
 ENV JAVA_HOME /usr/lib/jdk/$JAVA_VER
 
 RUN wget --header "Cookie: oraclelicense=accept-securebackup-cookie" $JAVA_URL \
@@ -143,7 +143,8 @@ RUN apt-get update \
     libz-dev \
 
  # NOTE! not sure why, but this must run before pip installation
- && useradd -m -s /bin/bash -N -u $UID $USER \
+ && useradd -m -s /bin/bash -N -G sudo -u $UID $USER \
+ && echo "$USER:debian" | chpasswd \
  # jessie's default pip doesn't work well with jupyter
  && wget -nv https://bootstrap.pypa.io/get-pip.py \
  && python get-pip.py \
