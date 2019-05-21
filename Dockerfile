@@ -159,6 +159,8 @@ RUN apt-get update \
 # # python 3 packages
  && pip3 install py4j \
  && pip3 install numpy \
+ && pip3 install scipy==1.2.0 \
+ && pip3 install scikit-learn==0.20.3 \
  && pip3 install matplotlib \
  && pip3 install pandas \
  && pip3 install seaborn \
@@ -244,6 +246,10 @@ RUN R -e 'devtools::install_github("IRkernel/IRkernel")' \
 #######################
 # Utilities
 #######################
+
+# Ubuntu python path is /usr/bin
+RUN ln -sf /usr/bin/python3 /usr/local/bin/python
+RUN ln -sf /usr/bin/python3 /usr/local/bin/python3
 
 ADD scripts $JUPYTER_HOME/scripts
 ADD custom/jupyter_delocalize.py $JUPYTER_HOME/custom/
