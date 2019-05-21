@@ -153,7 +153,7 @@ RUN apt-get update \
     # for jupyterlab extensions
     nodejs \
 
- && pip3 install tornado \
+ && pip3 install tornado==4.5.3 \
  && pip3 install -U decorator \
  && pip3 install parsimonious \
 # # python 3 packages
