@@ -135,6 +135,7 @@ RUN apt-get update \
     python3-dev \
     python3-pip \
     python3-setuptools \
+    python3-wheel \
     liblzo2-dev \
     python-tk \
     liblzo2-dev \
