@@ -1,6 +1,6 @@
 # adapted from https://github.com/DataBiosphere/leonardo/blob/develop/docker/jupyter/Dockerfile
 
-FROM debian:stretch
+FROM ubuntu:bionic
 
 USER root
 
@@ -9,14 +9,11 @@ USER root
 #######################
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV DEBIAN_REPO http://cdn-fastly.deb.debian.org
-ENV CRAN_REPO http://cran.mtu.edu
+ENV CRAN_REPO "deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/"
+ENV BACKPORTS_REPO "deb http://mirror.math.princeton.edu/pub/ubuntu bionic-backports main restricted universe"
+#ENV CRAN_REPO http://cran.mtu.edu
 
-RUN echo "deb $DEBIAN_REPO/debian stretch main"                   > /etc/apt/sources.list \
- && echo "deb $DEBIAN_REPO/debian-security stretch/updates main" >> /etc/apt/sources.list \
- && echo "deb $DEBIAN_REPO/debian stretch-backports main"        >> /etc/apt/sources.list \
- && echo "deb $DEBIAN_REPO/debian testing main"                  >> /etc/apt/sources.list \
- && echo 'APT::Default-Release "stable";' | tee -a /etc/apt/apt.conf.d/00local \
+RUN echo $BACKPORTS_REPO >> /etc/apt/sources.list \
  && apt-get update \
  && apt-get -yq dist-upgrade \
  && apt-get install -yq --no-install-recommends \
@@ -52,9 +49,8 @@ RUN echo "deb $DEBIAN_REPO/debian stretch main"                   > /etc/apt/sou
     cmake \
 
  # R separately because it depends on gnupg installed above
- && echo "deb $CRAN_REPO/bin/linux/debian stretch-cran35/"       >> /etc/apt/sources.list \
- && apt-key adv  --no-tty --keyserver keyserver.ubuntu.com \
-    --recv-key 'E19F5F87128899B192B1A2C2AD5F960A256A04AF' \
+ && echo $CRAN_REPO >> /etc/apt/sources.list \
+ && sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
 
  # Uncomment en_US.UTF-8 for inclusion in generation
  && sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen \
@@ -135,8 +131,10 @@ ENV PYTHONPATH $PYTHONPATH:$HAIL_HOME/$HAILPYTHON:$HAIL_HOME/python:$SPARK_HOME/
 
 RUN apt-get update \
  && apt-get install -yq --no-install-recommends \
-    python\
-    python-dev \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
     liblzo2-dev \
     python-tk \
     liblzo2-dev \
@@ -144,131 +142,29 @@ RUN apt-get update \
 
  # NOTE! not sure why, but this must run before pip installation
  && useradd -m -s /bin/bash -N -G sudo -u $UID $USER \
- && echo "$USER:debian" | chpasswd \
- # jessie's default pip doesn't work well with jupyter
- && wget -nv https://bootstrap.pypa.io/get-pip.py \
- && python get-pip.py \
- && pip install ipykernel==4.10.0 \
- && python2 -m ipykernel install --name python2 --display-name "Python 2" \
- # Hail requires decorator
- && pip install -U decorator==4.3.0 \
- && pip install numpy==1.15.2 \
- && pip install py4j==0.10.7 \
- && python -mpip install matplotlib==2.2.3\
- && pip install pandas==0.23.4 \
- && pip install seaborn==0.9.0 \
- && pip install google-api-core==1.5.0 \
- && pip install google-cloud-bigquery==1.7.0 \
- && pip install google-cloud-bigquery-datatransfer==0.1.1 \
- && pip install google-cloud-core==0.28.1 \
- && pip install google-cloud-datastore==1.7.0 \
- && pip install google-cloud-resource-manager==0.28.1 \
- && pip install google-cloud-storage==1.13.0 \
- && pip install google-auth==1.5.1 \
- && pip install --ignore-installed firecloud==0.16.18 \
- && pip install -U scikit-learn==0.20.0 \
- && pip install statsmodels==0.9.0 \
- && pip install ggplot==0.11.5 \
- # fixed current ggplot issue where it imports Timestamp from pandas.lib (deprecated) instead of pandas
- && sed -i 's/pandas.lib/pandas/g' /usr/local/lib/python2.7/dist-packages/ggplot/stats/smoothers.py \
- && pip install bokeh==1.0.0  \
- && pip install pyfasta==0.5.2 \
- && pip install pdoc==0.3.2 \
- && pip install biopython==1.72 \
- && pip install bx-python==0.8.2 \
- && pip install fastinterval==0.1.1 \
- && pip install matplotlib-venn==0.11.5 \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
-
-
-# Python 3 Kernel
-ENV PYTHON_VERSION 3.6.8
-
-# lifted from https://github.com/docker-library/python/blob/dd36c08c1f94083476a8579b8bf20c4cd46c6400/3.6/stretch/Dockerfile
-RUN set -ex \
- \
- && wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
- && wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
- && export GNUPGHOME="$(mktemp -d)" \
- && gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D" \
- && gpg --batch --verify python.tar.xz.asc python.tar.xz \
- && { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
- && rm -rf "$GNUPGHOME" python.tar.xz.asc \
- && mkdir -p /usr/src/python \
- && tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
- && rm python.tar.xz \
- \
- && cd /usr/src/python \
- && gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
- && ./configure \
-    --build="$gnuArch" \
-    --enable-loadable-sqlite-extensions \
-    --enable-shared \
-    --with-system-expat \
-    --with-system-ffi \
-    --without-ensurepip \
- && make -j "$(nproc)" \
- && make install \
- && ldconfig \
- \
- && find /usr/local -depth \
-    \( \
-        \( -type d -a \( -name test -o -name tests \) \) \
-        -o \
-        \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-    \) -exec rm -rf '{}' + \
- && rm -rf /usr/src/python \
- \
- && python3 --version
-
-# make some useful symlinks that are expected to exist
-RUN cd /usr/local/bin \
-	&& ln -s idle3 idle \
-	&& ln -s pydoc3 pydoc \
-	&& ln -s python3 python \
-	&& ln -s python3-config python-config
+ && echo "$USER:ubuntu" | chpasswd
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
 ENV PYTHON_PIP_VERSION 19.0.1
 
-RUN set -ex; \
-    \
-    wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
-	\
-    python get-pip.py \
-        --disable-pip-version-check \
-        --no-cache-dir \
-        "pip==$PYTHON_PIP_VERSION" \
-    ; \
-    pip --version; \
-    \
-    find /usr/local -depth \
-        \( \
-            \( -type d -a \( -name test -o -name tests \) \) \
-            -o \
-            \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-        \) -exec rm -rf '{}' +; \
-    rm -f get-pip.py
-
 RUN apt-get update \
- && apt-get install -t testing -yq --no-install-recommends \
+ && curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash - \
+ && apt-get install \
     # for jupyterlab extensions
     nodejs \
-    npm \
- && pip3 install tornado==4.5.3 \
-# # Hail requires decorator
- && pip3 install -U decorator==4.3.0 \
- && pip3 install parsimonious==0.8.1 \
+
+ && pip3 install tornado \
+ && pip3 install -U decorator \
+ && pip3 install parsimonious \
 # # python 3 packages
- && pip3 install numpy==1.15.2 \
- && pip3 install py4j==0.10.7 \
- && python3 -mpip install matplotlib==3.0.0 \
- && pip3 install pandas==0.23.4 \
- && pip3 install seaborn==0.9.0 \
- && pip3 install jupyter==1.0.0 \
- && pip3 install jupyterlab==0.35.4 \
- && pip3 install python-lzo==1.12 \
+ && pip3 install py4j \
+ && pip3 install numpy \
+ && pip3 install matplotlib \
+ && pip3 install pandas \
+ && pip3 install seaborn \
+ && pip3 install jupyter \
+ && pip3 install jupyterlab \
+ && pip3 install python-lzo \
  && pip3 install google-api-core==1.5.0 \
  && pip3 install google-cloud-bigquery==1.7.0 \
  && pip3 install google-cloud-bigquery-datatransfer==0.1.1 \
@@ -277,19 +173,16 @@ RUN apt-get update \
  && pip3 install google-cloud-resource-manager==0.28.1 \
  && pip3 install google-cloud-storage==1.13.0 \
  && pip3 install --ignore-installed firecloud==0.16.18 \
- && pip3 install scikit-learn==0.20.0 \
- && pip3 install statsmodels==0.9.0 \
- && pip3 install ggplot==0.11.5 \
- # fixed current ggplot issue where it imports Timestamp from pandas.lib (deprecated) instead of pandas
- && sed -i 's/pandas.lib/pandas/g' /usr/local/lib/python3.6/site-packages/ggplot/stats/smoothers.py \
- && pip3 install bokeh==1.0.0 \
- && pip3 install plotnine==0.5.1 \
- && pip3 install pyfasta==0.5.2 \
- && pip3 install pdoc==0.3.2 \
- && pip3 install biopython==1.72 \
- && pip3 install bx-python==0.8.2 \
- && pip3 install fastinterval==0.1.1 \
- && pip3 install matplotlib-venn==0.11.5 \
+ && pip3 install scikit-learn \
+ && pip3 install statsmodels \
+ && pip3 install bokeh \
+ && pip3 install plotnine \
+ && pip3 install pyfasta \
+ && pip3 install pdoc \
+ && pip3 install biopython \
+ && pip3 install bx-python \
+ && pip3 install fastinterval \
+ && pip3 install matplotlib-venn \
  # for jupyter_localize_extension
  && pip3 install python-datauri \
  && pip3 install jupyter_contrib_nbextensions \
@@ -308,23 +201,14 @@ ENV PIP_USER=true
 # R Kernel
 #######################
 
-RUN apt-get update && apt-get install -y --no-install-recommends apt-utils \
- && apt-get update && apt-get -t stretch-cran35 install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends apt-utils libcurl4 libcurl4-openssl-dev libssl-dev fonts-dejavu tzdata \
+ && apt-get update && apt-get -t bionic-cran35 install -y --no-install-recommends \
     r-base-core \
     r-base \
     r-base-dev \
     r-recommended \
     r-cran-mgcv \
-    r-cran-curl \
     r-cran-codetools \
- && apt-get install -y --no-install-recommends \
-    fonts-dejavu \
-    tzdata \
-    gfortran \
-    gcc \
-    libcurl4 \
-    libcurl4-openssl-dev \
-    libssl-dev \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  # fixes broken gfortan dependency needed by some R libraries
