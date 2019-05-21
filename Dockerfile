@@ -230,7 +230,7 @@ RUN R -e 'install.packages(c( \
     repos="http://cran.mtu.edu")' \
  && R -e 'devtools::install_github("DataBiosphere/Ronaldo")'
 
-RUN R -e 'BiocManager::install()' \
+RUN R -e 'BiocManager::install()'  \
  && R -e 'BiocManager::install(c("GenomicFeatures", "AnnotationDbi", "scran", "scater"))' \
 
 RUN R -e 'devtools::install_github("IRkernel/IRkernel")' \
