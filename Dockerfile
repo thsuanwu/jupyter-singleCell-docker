@@ -1,6 +1,14 @@
 # adapted from https://github.com/DataBiosphere/leonardo/blob/develop/docker/jupyter/Dockerfile
 
-FROM ubuntu:bionic
+# Initial Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+# CHANGELOG ====================================================================
+# Original file from https://github.com/jupyter/docker-stacks/blob/master/datascience-notebook/Dockerfile
+# Modified by Charles Le Losq to offer more Julia facilities out of the box (and removed R).
+# Modified by @vsoch to add more packages and work with containershare tool
+# docker build -t vanessa/julia-share .
+# docker run --rm -p 8888:8888 -e JUPYTER_LAB_ENABLE=yes -v "$PWD":/home/jovyan/work vanessa/julia-share
+FROM jupyter/scipy-notebook
 
 USER root
 
@@ -56,61 +64,6 @@ RUN echo $BACKPORTS_REPO >> /etc/apt/sources.list \
  && sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen \
  # Generate locale
  && locale-gen \
-
- # google-cloud-sdk separately because it need lsb-release and other prereqs installed above
- && export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" \
- && echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" > /etc/apt/sources.list.d/google-cloud-sdk.list \
- && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
- && apt-get update \
- && apt-get install -yq --no-install-recommends \
-    google-cloud-sdk \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
-
-ENV LC_ALL en_US.UTF-8
-
-#######################
-# Java
-#######################
-
-ENV JAVA_VER jdk1.8.0_131
-ENV JAVA_TGZ jdk-8u131-linux-x64.tar.gz
-ENV JAVA_URL http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/$JAVA_TGZ
-ENV JAVA_HOME /usr/lib/jdk/$JAVA_VER
-
-RUN wget --header "Cookie: oraclelicense=accept-securebackup-cookie" $JAVA_URL \
- && mkdir -p /usr/lib/jdk && tar -zxf $JAVA_TGZ -C /usr/lib/jdk \
- && update-alternatives --install /usr/bin/java java $JAVA_HOME/bin/java 100 \
- && update-alternatives --install /usr/bin/javac javac $JAVA_HOME/bin/javac 100 \
- && rm $JAVA_TGZ
-
-##############################
-# Spark / Hadoop / Hive / Hail
-##############################
-
-# Use Spark 2.2.0 which corresponds to Dataproc 1.2. See:
-#   https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-versions
-# Note: we are actually using Spark 2.2.1, but the Hail package is built using 2.2.0
-ENV SPARK_VER 2.2.0
-ENV SPARK_HOME=/usr/lib/spark
-
-# result of `gsutil cat gs://hail-common/builds/0.2/latest-hash/cloudtools-3-spark-2.2.0.txt` on 26 March 2019
-ENV HAILHASH daed180b84d8
-ENV HAILJAR hail-0.2-$HAILHASH-Spark-$SPARK_VER.jar
-ENV HAILPYTHON hail-0.2-$HAILHASH.zip
-ENV HAIL_HOME /etc/hail
-ENV KERNELSPEC_HOME /usr/local/share/jupyter/kernels
-
-# Note Spark and Hadoop are mounted from the outside Dataproc VM.
-# Make empty conf dirs for the update-alternatives commands.
-RUN mkdir -p /etc/spark/conf.dist && mkdir -p /etc/hadoop/conf.empty && mkdir -p /etc/hive/conf.dist \
- && update-alternatives --install /etc/spark/conf spark-conf /etc/spark/conf.dist 100 \
- && update-alternatives --install /etc/hadoop/conf hadoop-conf /etc/hadoop/conf.empty 100 \
- && update-alternatives --install /etc/hive/conf hive-conf /etc/hive/conf.dist 100 \
- && mkdir $HAIL_HOME && cd $HAIL_HOME \
- && wget -nv http://storage.googleapis.com/hail-common/builds/0.2/jars/$HAILJAR \
- && wget -nv http://storage.googleapis.com/hail-common/builds/0.2/python/$HAILPYTHON \
- && cd -
 
 #######################
 # Python / Jupyter
